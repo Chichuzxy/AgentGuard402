@@ -4,6 +4,8 @@
 
 **重点**: 已部署在 Avalanche Fuji 测试网, 有真实交易可验证 (见下方"链上证据")。
 
+**在线演示**: https://contributed-quiet-fireplace-henry.trycloudflare.com
+
 ---
 
 ## 1. 要解决的问题
