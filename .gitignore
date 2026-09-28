@@ -1,0 +1,20 @@
+# 依赖
+node_modules/
+
+# 环境变量与私钥 (绝对不能提交)
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+
+# Foundry 产物
+contracts/out/
+contracts/cache/
+
+# 日志
+*.log
+
+# 系统
+.DS_Store
+Thumbs.db

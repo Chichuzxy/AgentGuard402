@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>AgentGuard402 - 机器支付护栏</title>
+<script src="/vendor/ethers.umd.min.js"></script>
+<style>
+  :root{
+    --cream:#FFF6EC; --card:#FFFFFF; --line:#F1DFC9; --ink:#3B2A20; --muted:#95796A;
+    --orange:#F97316; --orange-soft:#FFE7D1; --green:#2E9E63; --red:#D64545; --blue:#3B7DD8;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--cream);color:var(--ink);font:14px/1.6 "Microsoft YaHei",system-ui,"Segoe UI",sans-serif}
+  header{display:flex;align-items:center;gap:14px;padding:16px 22px;background:linear-gradient(90deg,#FFF1DF,#FFFFFF);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}
+  .logo{font-size:26px}
+  h1{font-size:19px;margin:0}
+  .tag{color:var(--muted);font-size:12px}
+  .grow{flex:1}
+  .badge{background:var(--orange-soft);color:#B45309;border-radius:999px;padding:4px 12px;font-size:12px;border:1px solid #FBD9B5}
+  .btn{background:var(--orange);color:#fff;border:none;border-radius:10px;padding:9px 15px;cursor:pointer;font-size:13px;font-weight:600}
+  .btn:hover{filter:brightness(1.06)}
+  .btn.ghost{background:#fff;color:var(--ink);border:1px solid var(--line)}
+  .btn.small{padding:6px 10px;font-size:12px}
+  .btn:disabled{opacity:.5;cursor:not-allowed}
+  main{max-width:1180px;margin:0 auto;padding:18px 22px 60px;display:grid;gap:16px;grid-template-columns:1fr 1fr}
+  section{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px}
+  section.wide{grid-column:1 / -1}
+  h2{font-size:15px;margin:0 0 10px;display:flex;align-items:center;gap:8px}
+  h2 span.n{background:var(--orange);color:#fff;width:20px;height:20px;border-radius:6px;display:grid;place-items:center;font-size:12px}
+  label{display:block;font-size:12px;color:var(--muted);margin:8px 0 3px}
+  input,textarea{width:100%;border:1px solid var(--line);border-radius:8px;padding:8px 10px;font:13px/1.5 inherit;background:#FFFDFA;color:var(--ink)}
+  input.mono,textarea.mono{font-family:Consolas,monospace;font-size:12px}
+  .row{display:flex;gap:8px;align-items:flex-end}
+  .row > *{flex:1}
+  .row .btn{flex:0 0 auto}
+  .kv{display:grid;grid-template-columns:110px 1fr;gap:4px 10px;font-size:13px}
+  .kv b{color:var(--muted);font-weight:400}
+  .mono{font-family:Consolas,monospace}
+  .bar{height:10px;background:#F6EAD9;border-radius:6px;overflow:hidden;margin-top:6px}
+  .bar i{display:block;height:100%;background:linear-gradient(90deg,#FDBA74,#F97316)}
+  .pill{display:inline-block;border-radius:999px;padding:2px 9px;font-size:12px;border:1px solid}
+  .pill.ok{color:var(--green);border-color:#BFE6D0;background:#F1FBF5}
+  .pill.bad{color:var(--red);border-color:#F5C6C6;background:#FEF3F3}
+  .pill.wait{color:var(--muted);border-color:var(--line);background:#FFF9F2}
+  table{width:100%;border-collapse:collapse;font-size:12.5px}
+  th,td{text-align:left;padding:6px 8px;border-bottom:1px solid #F6EAD9}
+  th{color:var(--muted);font-weight:500}
+  a{color:var(--orange);text-decoration:none}
+  #agentLog{background:#3B2A20;color:#FFE9D2;border-radius:10px;padding:12px;height:260px;overflow:auto;font-family:Consolas,monospace;font-size:12.5px}
+  #agentLog div{margin:2px 0;white-space:pre-wrap}
+  .k-pass{color:#7DE0A5}.k-block{color:#FF9B9B}.k-head{color:#FFC178}.k-step{color:#E8D7C3}.k-link{color:#8AB8FF}
+  .steps{display:flex;flex-wrap:wrap;gap:6px;font-size:12px;color:var(--muted)}
+  .steps span{background:#FFF4E7;border:1px solid var(--line);border-radius:999px;padding:3px 10px}
+  #toast{position:fixed;right:18px;bottom:18px;display:grid;gap:8px;z-index:9}
+  #toast div{background:#3B2A20;color:#FFF3E4;padding:9px 14px;border-radius:10px;font-size:13px;max-width:420px}
+  .hint{font-size:12px;color:var(--muted);margin-top:6px}
+  .copy{cursor:pointer;border-bottom:1px dashed var(--muted)}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">🐼</div>
+  <div>
+    <h1>AgentGuard402</h1>
+    <div class="tag">让 AI Agent 自己付钱, 但每一分都跑不出你设的框 · x402 握手 + 链上策略合约</div>
+  </div>
+  <div class="grow"></div>
+  <div class="badge" id="netBadge">读配置中...</div>
+  <button class="btn" id="btnConnect">连接钱包</button>
+</header>
+
+<main>
+  <section class="wide">
+    <h2><span class="n">0</span>一笔机器付款要经过什么</h2>
+    <div class="steps">
+      <span>1 Agent 请求付费接口</span><span>2 服务端回 402 + 报价</span><span>3 预检: 链上策略说能不能花</span>
+      <span>4 Agent 签 EIP-712 (不花 gas / 不持币)</span><span>5 facilitator 代提交上链</span>
+      <span>6 vault 合约强制额度+白名单</span><span>7 落审计事件</span><span>8 放行数据</span>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="n">1</span>建策略 (你就是出资方)</h2>
+    <label>被授权的 Agent 地址</label>
+    <input class="mono" id="fAgent" />
+    <div class="row">
+      <div><label>单笔上限 (mUSDC)</label><input id="fPerTx" value="1" /></div>
+      <div><label>每日上限 (mUSDC)</label><input id="fDaily" value="3" /></div>
+      <div><label>有效期 (天)</label><input id="fDays" value="7" /></div>
+    </div>
+    <label>收款白名单 (逗号或换行分隔, 留空=不限)</label>
+    <textarea class="mono" id="fAllow" rows="2"></textarea>
+    <div class="row" style="margin-top:10px">
+      <button class="btn" id="btnCreate">创建策略</button>
+      <button class="btn ghost" id="btnDeposit">注资 vault</button>
+      <input id="fDeposit" value="10" style="max-width:90px" />
+    </div>
+    <div class="hint">注资前先 approve, 页面上会自动做两步: approve + deposit。</div>
+  </section>
+
+  <section>
+    <h2><span class="n">2</span>策略状态 (链上实时读)</h2>
+    <div class="row">
+      <div><label>策略编号</label><input id="fPolicyId" value="1" /></div>
+      <button class="btn ghost" id="btnLoad">读取</button>
+      <button class="btn small" id="btnFreezeTrue">冻结</button>
+      <button class="btn small ghost" id="btnFreezeFalse">解冻</button>
+      <button class="btn small ghost" id="btnRevokeAgent">撤销 Agent</button>
+    </div>
+    <div id="policyBox" class="kv" style="margin-top:12px"><b>状态</b><span>还没读取</span></div>
+  </section>
+
+  <section>
+    <h2><span class="n">3</span>付款预览 (花钱之前先问一遍)</h2>
+    <label>收款人</label><input class="mono" id="pPayee" />
+    <div class="row"><div><label>金额 (mUSDC)</label><input id="pAmount" value="0.001" /></div>
+    <button class="btn" id="btnPreview">预览</button></div>
+    <div id="previewBox" class="hint">预览走的是合约里的 checkPayment / registry.check, 与真正结算同一份判断逻辑。</div>
+  </section>
+
+  <section>
+    <h2><span class="n">4</span>角色地址 (演示用)</h2>
+    <div class="kv" id="rolesBox"></div>
+    <div class="hint">点地址可复制。Agent 那一行没有测试 AVAX —— 它只签名, 不花 gas。</div>
+  </section>
+
+  <section class="wide">
+    <h2><span class="n">5</span>让 Agent 自己跑一轮</h2>
+    <div class="row" style="margin-bottom:10px">
+      <button class="btn" id="btnAgent">启动自主采购</button>
+      <span class="hint" style="flex:2">它会连买 3 次行情数据, 再尝试买超单笔上限的数据集和未授权收款人的接口 —— 后两笔会被链上拦下。</span>
+    </div>
+    <div id="agentLog"></div>
+  </section>
+
+  <section class="wide">
+    <h2><span class="n">6</span>审计流水 (链上 PaymentSettled 事件)</h2>
+    <button class="btn ghost small" id="btnAudit">刷新流水</button>
+    <table style="margin-top:10px">
+      <thead><tr><th>时间</th><th>Agent</th><th>收款人</th><th>金额</th><th>买的是什么</th><th>tx</th></tr></thead>
+      <tbody id="auditBody"><tr><td colspan="6" style="color:var(--muted)">还没有记录</td></tr></tbody>
+    </table>
+  </section>
+</main>
+<div id="toast"></div>
+
+<script>
+const REGISTRY_ABI = [
+  'function createPolicy(address agent,address token,uint256 perTxCap,uint256 dailyCap,uint64 validUntil,address[] allowlist) returns (uint256)',
+  'function nextPolicyId() view returns (uint256)',
+  'function setActive(uint256 id,bool active)',
+  'function getPolicy(uint256 id) view returns (address owner,address agent,address token,uint256 perTxCap,uint256 dailyCap,uint64 validUntil,bool active)'
+];
+const VAULT_ABI = [
+  'function deposit(uint256 policyId,uint256 amount)',
+  'function setFrozen(uint256 policyId,bool value)'
+];
+const ERC20_ABI = ['function approve(address spender,uint256 amount) returns (bool)','function balanceOf(address) view returns (uint256)'];
+
+let CFG = null, provider = null, signer = null, account = null;
+
+const $ = (id) => document.getElementById(id);
+function toast(msg, ms = 4200) {
+  const d = document.createElement('div');
+  d.textContent = msg;
+  $('toast').appendChild(d);
+  setTimeout(() => d.remove(), ms);
+}
+const short = (a) => (a ? a.slice(0, 6) + '…' + a.slice(-4) : '-');
+const money = (v, dec) => (Number(v) / Math.pow(10, dec)).toString();
+
+async function api(path, opts) {
+  const r = await fetch(path, opts);
+  const j = await r.json().catch(() => ({}));
+  return { status: r.status, ...j };
+}
+
+async function boot() {
+  CFG = await api('/api/config');
+  $('netBadge').textContent = (CFG.network || ('chain ' + CFG.chainId)) + ' · #' + CFG.chainId;
+  $('fAgent').value = (CFG.roles && CFG.roles.agent) || '';
+  $('fAllow').value = (CFG.roles && CFG.roles.merchant) || '';
+  $('pPayee').value = (CFG.roles && CFG.roles.merchant) || '';
+  $('fPolicyId').value = CFG.defaultPolicyId || 1;
+  const roles = [
+    ['你 (策略 owner)', '连接钱包后显示'],
+    ['Agent', CFG.roles.agent],
+    ['Facilitator', CFG.roles.facilitator],
+    ['Merchant', CFG.roles.merchant],
+    ['Attacker', CFG.roles.attacker],
+    ['Vault 合约', CFG.contracts.vault],
+    ['Registry 合约', CFG.contracts.registry],
+    ['mUSDC 代币', CFG.contracts.mockUSDC],
+  ];
+  $('rolesBox').innerHTML = roles.map(([k, v]) => `<b>${k}</b><span class="mono copy" data-v="${v || ''}">${v || '-'}</span>`).join('');
+  document.querySelectorAll('.copy').forEach((el) => el.addEventListener('click', () => {
+    if (el.dataset.v) { navigator.clipboard.writeText(el.dataset.v); toast('已复制 ' + short(el.dataset.v)); }
+  }));
+  loadPolicy();
+  loadAudit();
+}
+
+async function connect() {
+  if (!window.ethereum) { toast('没检测到钱包插件, 请用装了 Core 或 MetaMask 的浏览器打开'); return; }
+  try {
+    const accs = await window.ethereum.request({ method: 'eth_requestAccounts' });
+    provider = new ethers.BrowserProvider(window.ethereum);
+    const net = await provider.getNetwork();
+    if (Number(net.chainId) !== Number(CFG.chainId)) {
+      try {
+        await window.ethereum.request({
+          method: 'wallet_switchEthereumChain',
+          params: [{ chainId: '0x' + Number(CFG.chainId).toString(16) }],
+        });
+        provider = new ethers.BrowserProvider(window.ethereum);
+      } catch (e) { toast('请在钱包里手动切到 chain ' + CFG.chainId); }
+    }
+    signer = await provider.getSigner();
+    account = await signer.getAddress();
+    $('btnConnect').textContent = short(account);
+    toast('已连接 ' + account);
+    const el = document.querySelector('#rolesBox .copy');
+    if (el) { el.textContent = account; el.dataset.v = account; }
+    loadPolicy();
+  } catch (e) { toast('连接失败: ' + (e.shortMessage || e.message)); }
+}
+
+async function createPolicy() {
+  if (!signer) return toast('先连接钱包');
+  const dec = CFG.token.decimals;
+  const allow = $('fAllow').value.split(/[\s,]+/).filter(Boolean);
+  const validUntil = Math.floor(Date.now() / 1000) + Number($('fDays').value) * 86400;
+  const c = new ethers.Contract(CFG.contracts.registry, REGISTRY_ABI, signer);
+  toast('请在钱包里确认创建策略...');
+  try {
+    const tx = await c.createPolicy($('fAgent').value.trim(), CFG.contracts.mockUSDC,
+      ethers.parseUnits($('fPerTx').value, dec), ethers.parseUnits($('fDaily').value, dec), validUntil, allow);
+    await tx.wait();
+    const next = await c.nextPolicyId();
+    const id = Number(next) - 1;
+    $('fPolicyId').value = id;
+    toast('策略 #' + id + ' 已上链');
+    loadPolicy();
+  } catch (e) { toast('创建失败: ' + (e.shortMessage || e.message)); }
+}
+
+async function deposit() {
+  if (!signer) return toast('先连接钱包');
+  const id = Number($('fPolicyId').value);
+  const dec = CFG.token.decimals;
+  const amt = ethers.parseUnits($('fDeposit').value, dec);
+  const token = new ethers.Contract(CFG.contracts.mockUSDC, ERC20_ABI, signer);
+  const vault = new ethers.Contract(CFG.contracts.vault, VAULT_ABI, signer);
+  try {
+    toast('第 1/2 步: approve (钱包确认)');
+    await (await token.approve(CFG.contracts.vault, amt)).wait();
+    toast('第 2/2 步: deposit (钱包确认)');
+    await (await vault.deposit(id, amt)).wait();
+    toast('已注资 ' + $('fDeposit').value + ' mUSDC 到 vault');
+    loadPolicy();
+  } catch (e) { toast('注资失败: ' + (e.shortMessage || e.message)); }
+}
+
+async function loadPolicy() {
+  const id = Number($('fPolicyId').value || 1);
+  const r = await api('/api/policy/' + id);
+  if (r.error) { $('policyBox').innerHTML = '<b>状态</b><span>' + r.error + '</span>'; return; }
+  const dec = CFG.token.decimals;
+  const spent = money(r.spentToday, dec), daily = money(r.dailyCap, dec);
+  const pct = Math.min(100, (Number(r.spentToday) / Number(r.dailyCap)) * 100);
+  $('policyBox').innerHTML = `
+    <b>owner</b><span class="mono">${short(r.owner)} ${account && r.owner.toLowerCase() === account.toLowerCase() ? '(你)' : ''}</span>
+    <b>agent</b><span class="mono">${short(r.agent)}</span>
+    <b>状态</b><span>${r.frozen ? '<span class="pill bad">已冻结</span>' : ''} ${r.active ? '<span class="pill ok">生效中</span>' : '<span class="pill bad">已停用</span>'} 到期 ${new Date(r.validUntil * 1000).toLocaleString()}</span>
+    <b>vault 余额</b><span>${money(r.vaultBalance, dec)} mUSDC</span>
+    <b>今日已花</b><span>${spent} / ${daily} mUSDC ${r.remainingDaily ? '(剩 ' + money(r.remainingDaily, dec) + ')' : ''}<div class="bar"><i style="width:${pct}%"></i></div></span>
+    <b>单笔上限</b><span>${money(r.perTxCap, dec)} mUSDC</span>
+    <b>白名单</b><span class="mono">${r.allowlist.length ? r.allowlist.map(short).join(', ') : '不限'}</span>
+    <b>已结算</b><span>${r.paymentCount} 笔</span>`;
+}
+
+async function freeze(v) {
+  if (!signer) return toast('先连接钱包');
+  const c = new ethers.Contract(CFG.contracts.vault, VAULT_ABI, signer);
+  try {
+    await (await c.setFrozen(Number($('fPolicyId').value), v)).wait();
+    toast(v ? '已冻结: agent 一分钱也花不出去' : '已解冻');
+    loadPolicy();
+  } catch (e) { toast('失败: ' + (e.shortMessage || e.message)); }
+}
+
+async function revokeAgent() {
+  if (!signer) return toast('先连接钱包');
+  const c = new ethers.Contract(CFG.contracts.registry, REGISTRY_ABI, signer);
+  try {
+    await (await c.setActive(Number($('fPolicyId').value), false)).wait();
+    toast('策略已停用, agent 签名立刻失效');
+    loadPolicy();
+  } catch (e) { toast('失败: ' + (e.shortMessage || e.message)); }
+}
+
+async function preview() {
+  const id = Number($('fPolicyId').value);
+  const amount = ethers.parseUnits($('pAmount').value, CFG.token.decimals).toString();
+  const r = await api('/api/preview', {
+    method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ policyId: id, payee: $('pPayee').value.trim(), amount }),
+  });
+  $('previewBox').innerHTML = r.isValid
+    ? `<span class="pill ok">可以通过</span> 剩余今日额度 ${money(r.remainingDaily, CFG.token.decimals)} mUSDC`
+    : `<span class="pill bad">会被拦下</span> 原因: <b>${r.reason}</b>`;
+}
+
+async function runAgent() {
+  const r = await api('/api/agent/run', {
+    method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ policyId: Number($('fPolicyId').value) }),
+  });
+  if (!r.started) return toast('已经在跑了');
+  $('agentLog').innerHTML = '';
+  pollAgent();
+}
+
+function renderLog(entries) {
+  $('agentLog').innerHTML = entries.map((e) => `<div class="k-${e.kind}">[${e.t}] ${e.text}</div>`).join('');
+  $('agentLog').scrollTop = $('agentLog').scrollHeight;
+}
+
+async function pollAgent() {
+  const r = await api('/api/agent/status');
+  renderLog(r.log || []);
+  if (r.running) setTimeout(pollAgent, 900);
+  else { loadPolicy(); loadAudit(); }
+}
+
+async function loadAudit() {
+  const r = await api('/api/audit?policyId=' + Number($('fPolicyId').value || 1));
+  const rows = (r.payments || []).map((p) => `<tr>
+    <td>${new Date(p.time).toLocaleTimeString()}</td>
+    <td class="mono">${short(p.agent)}</td>
+    <td class="mono">${short(p.payee)}</td>
+    <td>${(Number(p.amount) / 1e6).toString()} mUSDC</td>
+    <td>${p.resourceId ? '买东西: ' + p.resourceId.slice(0, 10) + '…' : '-'}</td>
+    <td><a href="${p.explorer}" target="_blank">查看</a></td></tr>`).join('');
+  $('auditBody').innerHTML = rows || '<tr><td colspan="6" style="color:var(--muted)">还没有记录</td></tr>';
+}
+
+$('btnConnect').onclick = connect;
+$('btnCreate').onclick = createPolicy;
+$('btnDeposit').onclick = deposit;
+$('btnLoad').onclick = loadPolicy;
+$('btnFreezeTrue').onclick = () => freeze(true);
+$('btnFreezeFalse').onclick = () => freeze(false);
+$('btnRevokeAgent').onclick = revokeAgent;
+$('btnPreview').onclick = preview;
+$('btnAgent').onclick = runAgent;
+$('btnAudit').onclick = loadAudit;
+boot();
+</script>
+</body>
+</html>

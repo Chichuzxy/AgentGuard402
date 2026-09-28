@@ -1,0 +1,58 @@
+AgentGuard402 - 链上证据存档
+链: Avalanche Fuji Testnet (chainId 43113)
+存档时间: 2026-09-28
+
+============================================================
+一、部署 (forge script script/Deploy.s.sol --broadcast --slow)
+============================================================
+部署账户: 0xdb03374034ca16Afe997038266886327d1efd3af (Account 2)
+部署区块: 58775335
+
+MockUSDC3009        0x8a50f20700ea53192e51f94030357DE8c515EA7E
+  tx 0x8e0fa9339fecd9d679c88fee72e1c276b61225b96562bc77c3606ffa67a5331f
+
+AgentPolicyRegistry 0xA79b564BcB53fab8B218C6707d815585338b6E6C
+  tx 0xd212794b272f1d9b66f8a3d9365c2c474d9574589463f4563800c880f072ee54
+
+PolicyVault         0xa3Bd7fA57d21fbCC0583bF790F6B4bEdDc2E472B
+  tx 0xfd412f0c44b79bf89e0403e9fb5aaa1b9d4a812a2acc4b8214eeee20f6e9c086
+
+mint 1000 mUSDC -> 部署者
+  tx 0x36286f47307a9b4df314f18eb7db8a189a3faae441cca2d996c086369f7f36d8
+
+浏览器: https://testnet.snowtrace.io/address/0xA79b564BcB53fab8B218C6707d815585338b6E6C
+
+============================================================
+二、场景铺设 (node bootstrap-local.js)
+============================================================
+策略 #1: 单笔 <= 1 mUSDC, 每日 <= 3 mUSDC, 白名单 = [merchant], 7 天有效
+vault 注资: 10 mUSDC
+
+角色余额体检:
+  facilitator 0x06157befB8Ca2Ba95dADAF0A1a5d7D13C4f2B523  2.0 AVAX  (付 gas)
+  agent       0x33627EDaCEb66193CDcfBa832486Da4a0486A5A6  0 AVAX    (只签名, 设计上不需要)
+  merchant    0x16004A1452C52b2C36A956507335979B22cF50Dc  0 AVAX    (只收款)
+
+============================================================
+三、端到端演示 (node agent.js, 连接 Fuji)
+============================================================
+agent address: 0x33627EDaCEb66193CDcfBa832486Da4a0486A5A6 (无 gas, 不持币)
+正常采购 1           PASS  tx=0x75e700f5322a2760c90ce6e61ef9f7dcc38246487514382b8bdc90df0ddcb476 (9692ms)
+正常采购 2           PASS  tx=0xc2eb209a6792e162dba20070e185ff7d1bfa7fb9a038be4fb3229bf7999767ce (8813ms)
+超单笔上限            BLOCKED  registry: per-tx cap exceeded (865ms)
+未授权收款人           BLOCKED  registry: payee not in allowlist (923ms)
+
+放行交易 1: https://testnet.snowtrace.io/tx/0x75e700f5322a2760c90ce6e61ef9f7dcc38246487514382b8bdc90df0ddcb476
+放行交易 2: https://testnet.snowtrace.io/tx/0xc2eb209a6792e162dba20070e185ff7d1bfa7fb9a038be4fb3229bf7999767ce
+
+审计流水 (GET /api/audit):
+  每笔含 txHash / blockNumber / agent / payee / amount / spentToday / explorer 链接
+  完整 JSON 见 agent-demo-fuji.log 与前端"审计流水"面板
+
+============================================================
+四、合约测试
+============================================================
+forge test -> 17 passed / 0 failed
+覆盖: 正常结算 / 无 gas 无持币 / 超单笔上限 / 白名单外 / 超日额度 / 次日重置 /
+      过期 intent / 过期策略 / nonce 重放 / 换人签名 / 改金额 / 冻结 / 停用 /
+      换 agent / 只有 owner 能提款 / 预览=执行 / 裸 3009 无额度对照实验
