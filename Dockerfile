@@ -11,7 +11,7 @@ RUN cd backend && npm ci --omit=dev
 COPY backend/ ./backend/
 COPY frontend/ ./frontend/
 
-ENV PORT=4020
+# 端口: 云平台会注入 PORT 环境变量; 没注入时 server.js 自己回落到 4020
 EXPOSE 4020
 
 CMD ["node", "backend/server.js"]
