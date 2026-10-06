@@ -75,15 +75,31 @@ Agent            服务方(402)          Facilitator           PolicyVault
 
 ### 端到端实测 (真实交易)
 
-放行 2 笔 (Agent 无 gas、无持币, 由 facilitator 代发):
+一轮完整演示共 16 个场景: **4 笔放行 + 12 笔拦截**, 全部实测可复现。
 
-- https://testnet.snowtrace.io/tx/0x75e700f5322a2760c90ce6e61ef9f7dcc38246487514382b8bdc90df0ddcb476
-- https://testnet.snowtrace.io/tx/0xc2eb209a6792e162dba20070e185ff7d1bfa7fb9a038be4fb3229bf7999767ce
+放行 (Agent 无 gas、无持币, 由 facilitator 代发):
 
-拦截 2 笔, 回滚原因来自合约本身:
+- https://testnet.snowtrace.io/tx/0x417d443b86996234cc79bd0faae6d9106e289479d770ecc829f5ef38838534ba
+- https://testnet.snowtrace.io/tx/0x6437ddf3a93f864c1dbb4b2cd47a26f48edba286ecdaadeee0c4c409473ab00e
+- https://testnet.snowtrace.io/tx/0xeee300a32b96e64af954a8411ea49b8f6e8fb49fea0745bab66b786d13be561c
+- https://testnet.snowtrace.io/tx/0x6d599b9f37d9b034090d2011b8aa1aeb58888a5dd7670afc91eb81b504bb1f8c
 
-- `registry: per-tx cap exceeded` - 超过单笔上限
-- `registry: payee not in allowlist` - 收款人不在白名单
+拦截 12 笔 —— 全部发生在**预检阶段** (合约判定不通过, 交易根本没发出去, 0 gas):
+
+| 合约返回的拒绝理由 | 含义 |
+|---|---|
+| `registry: per-tx cap exceeded` | 超过单笔上限 |
+| `vault: daily cap exceeded` | 超过每日上限 |
+| `registry: payee not in allowlist` | 收款人不在白名单 |
+| `registry: amount is zero` | 金额为零 |
+| `registry: policy not found` | 策略不存在 |
+| `registry: policy expired` | 策略已过期 |
+| `registry: policy inactive` | 策略已停用 |
+| `vault: insufficient vault balance` | 金库余额不足 |
+| `vault: policy frozen` | 资金被冻结 |
+| `intent: bad signature` | 别人冒充 Agent 签名 |
+| `vault: nonce already used` | 签名被重放 |
+| `intent: expired` | 签名本身过期 |
 
 合约单元测试: `forge test` **17 passed / 0 failed**, 覆盖超额度、白名单外、日额度重置、nonce 重放、过期策略、换人签名、改金额、冻结停用、预览与执行一致等场景。
 
@@ -113,12 +129,15 @@ anvil                            # 另开一个终端
 cd backend
 npm install
 node setup-keys.js               # 本地生成测试私钥写入 .env (不打印私钥)
-PRIVATE_KEY=0xac09...  forge script script/Deploy.s.sol --rpc-url http://127.0.0.1:8545 --broadcast
+PRIVATE_KEY=0x...(本地生成的测试私钥)  forge script script/Deploy.s.sol --rpc-url http://127.0.0.1:8545 --broadcast
 node bootstrap-local.js          # 铸币 / 建策略 / 注资
 node server.js                   # 打开 http://127.0.0.1:4020
 
-# 3. 跑一轮 Agent 演示
+# 3. 跑一轮 Agent 演示 (快速版)
 node agent.js
+
+# 3b. 跑完整演示 (16 个场景, 会自动新建一组演示策略)
+node agent.js --full
 ```
 
 切到 Fuji 测试网:
@@ -148,4 +167,6 @@ Fuji 网络参数: RPC `https://api.avax-test.network/ext/bc/C/rpc`, chainId `43
 
 - 仓库内所有私钥均为**测试网专用临时钱包**, 不持有任何真实资产
 - `.env` 已被 `.gitignore` 排除, 仓库中只有 `.env.example` 模板
+- 代码里出现的 `0xac0974bec3...` 是 **anvil (Foundry 本地测试链) 的官方默认账户私钥** ——
+  Foundry 文档公开的固定值 (forge-std 自己的测试也在用), 只在本地区块链有效, 不持有任何真实资产
 - `PolicyVault` 没有任何函数能让 facilitator 或 agent 提走资金, 提款只认 policy owner

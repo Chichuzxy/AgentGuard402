@@ -12,7 +12,10 @@ const fs = require('fs');
 const path = require('path');
 const { ethers } = require('ethers');
 
-const ANVIL_OWNER_KEY = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80'; // anvil 公开测试账号, 仅本地链使用
+// anvil (Foundry 本地测试链) 第 0 个默认账户的私钥。
+// 这是 Foundry 官方文档公开的固定值 (forge-std 自己的测试里也在用), 全世界本地开发都用它,
+// 只在本地区块链上有效, 不持有任何真实资产。详见 README 的「安全说明」。
+const ANVIL_OWNER_KEY = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
 
 const envPath = path.join(__dirname, '.env');
 if (!fs.existsSync(envPath)) {
@@ -95,7 +98,7 @@ const ERC20_ABI = ['function mint(address to,uint256 amount)', 'function approve
 
   const perTxCap = 1_000000n; // 1 mUSDC
   const dailyCap = 3_000000n; // 3 mUSDC
-  const validUntil = Math.floor(Date.now() / 1000) + 7 * 86400;
+  const validUntil = Math.floor(Date.now() / 1000) + 60 * 86400;  // 60 天: 覆盖比赛评审期与 Demo Day
   const tx = await registry.createPolicy(env.AGENT_PRIVATE_KEY ? new ethers.Wallet(env.AGENT_PRIVATE_KEY).address : env.MERCHANT_ADDRESS, env.MOCK_USDC, perTxCap, dailyCap, validUntil, [env.MERCHANT_ADDRESS]);
   const rc = await tx.wait();
   const policyId = Number(await registry.nextPolicyId()) - 1;

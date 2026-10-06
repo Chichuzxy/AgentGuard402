@@ -18,19 +18,38 @@
   .tag{color:var(--muted);font-size:12px}
   .grow{flex:1}
   .badge{background:var(--orange-soft);color:#B45309;border-radius:999px;padding:4px 12px;font-size:12px;border:1px solid #FBD9B5}
-  .btn{background:var(--orange);color:#fff;border:none;border-radius:10px;padding:9px 15px;cursor:pointer;font-size:13px;font-weight:600}
+  /* 按钮规范: 一律 36px 高 / 8px 圆角(与输入框一致) / 13px 字重 600。
+     边框用透明占位, 这样实心与描边按钮尺寸完全相同, 并排不会一高一低。 */
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;
+       height:36px;padding:0 16px;border:1px solid transparent;border-radius:8px;
+       font-size:13px;font-weight:600;font-family:inherit;line-height:1;
+       background:var(--orange);color:#fff;cursor:pointer;white-space:nowrap;
+       transition:background .12s ease, border-color .12s ease, filter .12s ease}
   .btn:hover{filter:brightness(1.06)}
-  .btn.ghost{background:#fff;color:var(--ink);border:1px solid var(--line)}
-  .btn.small{padding:6px 10px;font-size:12px}
+  .btn:focus-visible{outline:2px solid #FDBA74;outline-offset:2px}
   .btn:disabled{opacity:.5;cursor:not-allowed}
+  .btn.ghost{background:#fff;color:var(--ink);border-color:var(--line)}
+  .btn.ghost:hover{background:#FFFDFA;border-color:#E7CFAE;filter:none}
+  /* 中断类(冻结): 白底橙字, 不跟主按钮抢橙色 */
+  .btn.warn{background:#fff;color:#B45309;border-color:#FBD9B5}
+  .btn.warn:hover{background:#FFF7ED;filter:none}
+  /* 危险类(停用策略): 白底红字 */
+  .btn.danger{background:#fff;color:var(--red);border-color:#F0C9C9}
+  .btn.danger:hover{background:#FEF3F3;filter:none}
   main{max-width:1180px;margin:0 auto;padding:18px 22px 60px;display:grid;gap:16px;grid-template-columns:1fr 1fr}
   section{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px}
   section.wide{grid-column:1 / -1}
   h2{font-size:15px;margin:0 0 10px;display:flex;align-items:center;gap:8px}
   h2 span.n{background:var(--orange);color:#fff;width:20px;height:20px;border-radius:6px;display:grid;place-items:center;font-size:12px}
   label{display:block;font-size:12px;color:var(--muted);margin:8px 0 3px}
-  input,textarea{width:100%;border:1px solid var(--line);border-radius:8px;padding:8px 10px;font:13px/1.5 inherit;background:#FFFDFA;color:var(--ink)}
+  /* 输入框与按钮同高同圆角, 并排时才齐 */
+  input,textarea{width:100%;box-sizing:border-box;border:1px solid var(--line);border-radius:8px;
+    height:36px;padding:0 10px;font-size:13px;font-family:inherit;background:#FFFDFA;color:var(--ink)}
+  textarea{height:auto;padding:8px 10px;line-height:1.5}
   input.mono,textarea.mono{font-family:Consolas,monospace;font-size:12px}
+  input:focus,textarea:focus{outline:none;border-color:#F0B174;background:#FFFCF7}
+  /* 复选框不能被上面的 36px 规则撑大, 恢复原生小尺寸, 勾选色跟主题橙一致 */
+  input[type=checkbox]{width:auto;height:auto;padding:0;margin:0 5px 0 0;accent-color:var(--orange);vertical-align:-1px}
   .row{display:flex;gap:8px;align-items:flex-end}
   .row > *{flex:1}
   .row .btn{flex:0 0 auto}
@@ -49,9 +68,21 @@
   a{color:var(--orange);text-decoration:none}
   #agentLog{background:#3B2A20;color:#FFE9D2;border-radius:10px;padding:12px;height:260px;overflow:auto;font-family:Consolas,monospace;font-size:12.5px}
   #agentLog div{margin:2px 0;white-space:pre-wrap}
+  .hintbar{background:#FFF4E6;border-bottom:1px solid var(--line);padding:9px 22px;font-size:12.5px;color:#7A5B45;display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+  .hintbar b{color:#B45309}
+  #walletBal{margin-left:auto;font-family:Consolas,monospace;color:#3B2A20}
+  /* 手机/窄屏: 双栏挤不下, 改单栏 (评委很可能是用手机点开链接的) */
+  @media (max-width: 880px){
+    main{grid-template-columns:1fr !important;padding:14px}
+    header{flex-wrap:wrap;gap:8px;padding:12px 14px}
+    .hintbar{padding:9px 14px}
+    #walletBal{margin-left:0}
+    .steps{grid-template-columns:1fr 1fr}
+  }
   .k-pass{color:#7DE0A5}.k-block{color:#FF9B9B}.k-head{color:#FFC178}.k-step{color:#E8D7C3}.k-link{color:#8AB8FF}
-  .steps{display:flex;flex-wrap:wrap;gap:6px;font-size:12px;color:var(--muted)}
-  .steps span{background:#FFF4E7;border:1px solid var(--line);border-radius:999px;padding:3px 10px}
+  .steps{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;font-size:13.5px;color:var(--ink);margin-top:6px}
+  .steps span{background:#FFFDFA;border:1px solid var(--line);border-radius:10px;padding:9px 13px;display:flex;align-items:center;gap:8px}
+  .steps b{background:var(--orange);color:#fff;width:19px;height:19px;border-radius:5px;display:grid;place-items:center;font-size:11px;flex:0 0 auto}
   #toast{position:fixed;right:18px;bottom:18px;display:grid;gap:8px;z-index:9}
   #toast div{background:#3B2A20;color:#FFF3E4;padding:9px 14px;border-radius:10px;font-size:13px;max-width:420px}
   .hint{font-size:12px;color:var(--muted);margin-top:6px}
@@ -67,52 +98,80 @@
   </div>
   <div class="grow"></div>
   <div class="badge" id="netBadge">读配置中...</div>
+  <a class="btn ghost" style="text-decoration:none" href="https://github.com/Chichuzxy/AgentGuard402" target="_blank" rel="noopener">GitHub</a>
   <button class="btn" id="btnConnect">连接钱包</button>
 </header>
+<div class="hintbar">
+  <span>第一次来？<b>不用装钱包也能看</b>：点最上面第 0 节的【启动自主采购】（快，约 40 秒）或【完整演示】（把合约里 12 种拦截全跑一遍）—— Agent 会自己掏钱买数据，再被链上拦下。要建策略 / 注资 / 冻结，才需要装 MetaMask 并连接钱包。</span>
+  <span id="walletBal">未连接钱包</span>
+</div>
 
 <main>
   <section class="wide">
-    <h2><span class="n">0</span>一笔机器付款要经过什么</h2>
+    <h2><span class="n">0</span>让 Agent 自己跑一轮<span style="font-weight:400;font-size:12px;color:var(--muted);margin-left:8px">先点这个看效果，不需要钱包</span></h2>
+    <div class="row" style="margin-bottom:10px">
+      <button class="btn" id="btnAgent">启动自主采购</button>
+      <button class="btn warn" id="btnAgentFull">完整演示（12 种拦截）</button>
+      <span class="hint" style="flex:2">快速版：连买 3 次行情数据，再试两笔越权采购被链上拦下（约 40 秒）。完整版：自动建一组新演示策略，把合约里全部 12 种拦截跑一遍 —— 含冒充签名、签名重放、策略过期、资金冻结（约 4 分钟）。</span>
+    </div>
+    <div id="agentLog"><div style="color:#C9A98D">点上面任一按钮开始，这里会实时滚动 Agent 的每一步：放行的带交易哈希和耗时，被拦的会写出合约给出的拒绝理由。"完整演示"还会跑到合约里全部 12 种拦截。</div></div>
+  </section>
+
+  <section class="wide">
+    <h2><span class="n">1</span>一笔机器付款要经过什么</h2>
     <div class="steps">
-      <span>1 Agent 请求付费接口</span><span>2 服务端回 402 + 报价</span><span>3 预检: 链上策略说能不能花</span>
-      <span>4 Agent 签 EIP-712 (不花 gas / 不持币)</span><span>5 facilitator 代提交上链</span>
-      <span>6 vault 合约强制额度+白名单</span><span>7 落审计事件</span><span>8 放行数据</span>
+      <span><b>1</b>Agent 请求付费接口</span>
+      <span><b>2</b>服务端回 402 + 报价</span>
+      <span><b>3</b>预检：链上策略说能不能花</span>
+      <span><b>4</b>Agent 签 EIP-712（不花 gas / 不持币）</span>
+      <span><b>5</b>facilitator 代提交上链</span>
+      <span><b>6</b>vault 合约强制额度 + 白名单</span>
+      <span><b>7</b>落审计事件</span>
+      <span><b>8</b>放行数据</span>
     </div>
   </section>
 
   <section>
-    <h2><span class="n">1</span>建策略 (你就是出资方)</h2>
+    <h2><span class="n">2</span>建策略 (你就是出资方)</h2>
     <label>被授权的 Agent 地址</label>
     <input class="mono" id="fAgent" />
     <div class="row">
       <div><label>单笔上限 (mUSDC)</label><input id="fPerTx" value="1" /></div>
       <div><label>每日上限 (mUSDC)</label><input id="fDaily" value="3" /></div>
-      <div><label>有效期 (天)</label><input id="fDays" value="7" /></div>
+      <div><label>有效期 (天)</label><input id="fDays" value="60" /></div>
     </div>
     <label>收款白名单 (逗号或换行分隔, 留空=不限)</label>
     <textarea class="mono" id="fAllow" rows="2"></textarea>
     <div class="row" style="margin-top:10px">
       <button class="btn" id="btnCreate">创建策略</button>
+      <div><label>注资金额 (mUSDC)</label><input id="fDeposit" value="10" /></div>
       <button class="btn ghost" id="btnDeposit">注资 vault</button>
-      <input id="fDeposit" value="10" style="max-width:90px" />
     </div>
     <div class="hint">注资前先 approve, 页面上会自动做两步: approve + deposit。</div>
+    <div class="hint" id="createResult" style="margin-top:8px"></div>
   </section>
 
   <section>
-    <h2><span class="n">2</span>策略状态 (链上实时读)</h2>
+    <h2><span class="n">3</span>策略状态 (链上实时读)</h2>
     <div class="row">
       <div><label>策略编号</label><input id="fPolicyId" value="1" /></div>
       <button class="btn ghost" id="btnLoad">读取</button>
-      <button class="btn small" id="btnFreezeTrue">冻结</button>
-      <button class="btn small ghost" id="btnFreezeFalse">解冻</button>
-      <button class="btn small ghost" id="btnRevokeAgent">撤销 Agent</button>
+      <button class="btn warn" id="btnFreezeTrue">冻结</button>
+      <button class="btn ghost" id="btnFreezeFalse">解冻</button>
+      <button class="btn danger" id="btnRevokeAgent">停用策略</button>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <div><label>提回金额 (mUSDC)</label><input id="fWithdraw" value="1" /></div>
+      <button class="btn ghost" id="btnWithdraw">提回钱包</button>
+      <div style="flex:2"><label>换 Agent 地址 (旧 Agent 立即失效)</label><input id="fNewAgent" placeholder="0x..." /></div>
+      <button class="btn ghost" id="btnRotateAgent">换 Agent</button>
     </div>
     <div id="policyBox" class="kv" style="margin-top:12px"><b>状态</b><span>还没读取</span></div>
+    <div class="hint" style="margin-top:6px">链上没有"删除策略"这回事 —— 停用即止损：Agent 一分钱也花不出去，金库余额可随时【提回钱包】；交易记录会留在链上，这正是审计要的效果，本来就删不掉。</div>
   </section>
 
   <section>
-    <h2><span class="n">3</span>付款预览 (花钱之前先问一遍)</h2>
+    <h2><span class="n">4</span>付款预览 (花钱之前先问一遍)</h2>
     <label>收款人</label><input class="mono" id="pPayee" />
     <div class="row"><div><label>金额 (mUSDC)</label><input id="pAmount" value="0.001" /></div>
     <button class="btn" id="btnPreview">预览</button></div>
@@ -120,26 +179,22 @@
   </section>
 
   <section>
-    <h2><span class="n">4</span>角色地址 (演示用)</h2>
+    <h2><span class="n">5</span>角色地址 (演示用)</h2>
     <div class="kv" id="rolesBox"></div>
     <div class="hint">点地址可复制。Agent 那一行没有测试 AVAX —— 它只签名, 不花 gas。</div>
   </section>
 
-  <section class="wide">
-    <h2><span class="n">5</span>让 Agent 自己跑一轮</h2>
-    <div class="row" style="margin-bottom:10px">
-      <button class="btn" id="btnAgent">启动自主采购</button>
-      <span class="hint" style="flex:2">它会连买 3 次行情数据, 再尝试买超单笔上限的数据集和未授权收款人的接口 —— 后两笔会被链上拦下。</span>
-    </div>
-    <div id="agentLog"></div>
-  </section>
 
   <section class="wide">
     <h2><span class="n">6</span>审计流水 (链上 PaymentSettled 事件)</h2>
-    <button class="btn ghost small" id="btnAudit">刷新流水</button>
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px">
+      <button class="btn ghost" id="btnAudit">刷新流水</button>
+      <span class="hint" id="auditAt" style="margin:0">尚未刷新</span>
+      <label class="hint" style="margin:0;cursor:pointer"><input type="checkbox" id="chkAuto" style="vertical-align:-2px" /> 自动刷新（10 秒一次）</label>
+    </div>
     <table style="margin-top:10px">
-      <thead><tr><th>时间</th><th>Agent</th><th>收款人</th><th>金额</th><th>买的是什么</th><th>tx</th></tr></thead>
-      <tbody id="auditBody"><tr><td colspan="6" style="color:var(--muted)">还没有记录</td></tr></tbody>
+      <thead><tr><th>时间</th><th>Agent</th><th>收款人</th><th>金额</th><th>买的是什么</th><th>当日累计</th><th>tx</th></tr></thead>
+      <tbody id="auditBody"><tr><td colspan="7" style="color:var(--muted)">还没有记录</td></tr></tbody>
     </table>
   </section>
 </main>
@@ -150,10 +205,12 @@ const REGISTRY_ABI = [
   'function createPolicy(address agent,address token,uint256 perTxCap,uint256 dailyCap,uint64 validUntil,address[] allowlist) returns (uint256)',
   'function nextPolicyId() view returns (uint256)',
   'function setActive(uint256 id,bool active)',
+  'function rotateAgent(uint256 id,address newAgent)',
   'function getPolicy(uint256 id) view returns (address owner,address agent,address token,uint256 perTxCap,uint256 dailyCap,uint64 validUntil,bool active)'
 ];
 const VAULT_ABI = [
   'function deposit(uint256 policyId,uint256 amount)',
+  'function withdraw(uint256 policyId,uint256 amount)',
   'function setFrozen(uint256 policyId,bool value)'
 ];
 const ERC20_ABI = ['function approve(address spender,uint256 amount) returns (bool)','function balanceOf(address) view returns (uint256)'];
@@ -183,6 +240,19 @@ async function boot() {
   $('fAllow').value = (CFG.roles && CFG.roles.merchant) || '';
   $('pPayee').value = (CFG.roles && CFG.roles.merchant) || '';
   $('fPolicyId').value = CFG.defaultPolicyId || 1;
+  // 服务端有演示正在跑的话, 打开/刷新页面直接接上实时日志
+  api('/api/agent/status').then((st) => {
+    if (!st) return;
+    // 上次跑过的演示: 打开页面直接还原日志, 不用重点一次
+    if (st.log && st.log.length) renderLog(st.log);
+    if (st.running) {
+      $('agentLog').innerHTML = '';
+      $('btnAgent').disabled = true;
+      $('btnAgentFull').disabled = true;
+      $('btnAgent').textContent = '运行中…';
+      pollAgent();
+    }
+  });
   const roles = [
     ['你 (策略 owner)', '连接钱包后显示'],
     ['Agent', CFG.roles.agent],
@@ -222,8 +292,20 @@ async function connect() {
     toast('已连接 ' + account);
     const el = document.querySelector('#rolesBox .copy');
     if (el) { el.textContent = account; el.dataset.v = account; }
+    showWalletBalance();
     loadPolicy();
   } catch (e) { toast('连接失败: ' + (e.shortMessage || e.message)); }
+}
+
+// 让出资方一眼看到自己还有多少钱: AVAX 付 gas, mUSDC 拿来注资
+async function showWalletBalance() {
+  try {
+    const bal = await provider.getBalance(account);
+    const t = new ethers.Contract(CFG.contracts.mockUSDC, ERC20_ABI, provider);
+    const tok = await t.balanceOf(account);
+    $('walletBal').textContent = '钱包: ' + Number(ethers.formatEther(bal)).toFixed(3)
+      + ' AVAX (gas) · ' + (Number(tok) / 10 ** CFG.token.decimals) + ' mUSDC (可注资)';
+  } catch (e) { $('walletBal').textContent = short(account); }
 }
 
 async function createPolicy() {
@@ -240,9 +322,40 @@ async function createPolicy() {
     const next = await c.nextPolicyId();
     const id = Number(next) - 1;
     $('fPolicyId').value = id;
+    const total = Number(await c.nextPolicyId()) - 1;
+    $('createResult').innerHTML = '刚创建: <b style="color:#F97316">策略 #' + id + '</b>'
+      + ' —— 编号已自动填进第 3 节, 链上现在一共 ' + total + ' 条策略。';
     toast('策略 #' + id + ' 已上链');
     loadPolicy();
   } catch (e) { toast('创建失败: ' + (e.shortMessage || e.message)); }
+}
+
+/** 换 Agent: owner 把授权转到另一个地址, 旧 Agent 立刻失效 (合约: rotateAgent + onlyPolicyOwner) */
+async function rotateAgent() {
+  if (!signer) return toast('先连接钱包');
+  const id = Number($('fPolicyId').value);
+  const addr = $('fNewAgent').value.trim();
+  if (!ethers.isAddress(addr)) return toast('请填一个合法的 0x 地址');
+  const c = new ethers.Contract(CFG.contracts.registry, REGISTRY_ABI, signer);
+  try {
+    await (await c.rotateAgent(id, addr)).wait();
+    toast('已把策略 #' + id + ' 的授权换给 ' + addr.slice(0, 10) + '…');
+    loadPolicy();
+  } catch (e) { toast('换 Agent 失败: ' + (e.shortMessage || e.message)); }
+}
+
+/** 提款: 策略 owner 把金库里的钱提回自己钱包 (合约: withdraw + onlyPolicyOwner) */
+async function withdrawFunds() {
+  if (!signer) return toast('先连接钱包');
+  const id = Number($('fPolicyId').value);
+  const amt = ethers.parseUnits($('fWithdraw').value, CFG.token.decimals);
+  const vault = new ethers.Contract(CFG.contracts.vault, VAULT_ABI, signer);
+  try {
+    await (await vault.withdraw(id, amt)).wait();
+    toast('已提回 ' + $('fWithdraw').value + ' mUSDC 到你的钱包');
+    loadPolicy();
+    showWalletBalance();
+  } catch (e) { toast('提款失败: ' + (e.shortMessage || e.message)); }
 }
 
 async function deposit() {
@@ -272,12 +385,14 @@ async function loadPolicy() {
   $('policyBox').innerHTML = `
     <b>owner</b><span class="mono">${short(r.owner)} ${account && r.owner.toLowerCase() === account.toLowerCase() ? '(你)' : ''}</span>
     <b>agent</b><span class="mono">${short(r.agent)}</span>
-    <b>状态</b><span>${r.frozen ? '<span class="pill bad">已冻结</span>' : ''} ${r.active ? '<span class="pill ok">生效中</span>' : '<span class="pill bad">已停用</span>'} 到期 ${new Date(r.validUntil * 1000).toLocaleString()}</span>
+    <b>状态</b><span>${r.frozen ? '<span class="pill bad">资金已冻结</span>' : '<span class="pill ok">资金可支付</span>'} ${r.active ? '<span class="pill ok">策略生效中</span>' : '<span class="pill bad">策略已停用</span>'} 到期 ${new Date(r.validUntil * 1000).toLocaleString()}</span>
+    ${r.frozen ? '<b>冻结</b><span style="color:#95796A">冻结只锁资金, 策略本身仍启用 —— Agent 一分钱都花不出去, 点【解冻】立即恢复</span>' : ''}
     <b>vault 余额</b><span>${money(r.vaultBalance, dec)} mUSDC</span>
     <b>今日已花</b><span>${spent} / ${daily} mUSDC ${r.remainingDaily ? '(剩 ' + money(r.remainingDaily, dec) + ')' : ''}<div class="bar"><i style="width:${pct}%"></i></div></span>
     <b>单笔上限</b><span>${money(r.perTxCap, dec)} mUSDC</span>
     <b>白名单</b><span class="mono">${r.allowlist.length ? r.allowlist.map(short).join(', ') : '不限'}</span>
-    <b>已结算</b><span>${r.paymentCount} 笔</span>`;
+    <b>已结算</b><span>${r.paymentCount} 笔</span>
+    <b>链上策略总数</b><span>${r.totalPolicies !== undefined ? r.totalPolicies + ' 条 (当前查看 #' + id + ')' : '-'}</span>`;
 }
 
 async function freeze(v) {
@@ -292,6 +407,8 @@ async function freeze(v) {
 
 async function revokeAgent() {
   if (!signer) return toast('先连接钱包');
+  const pid = Number($('fPolicyId').value);
+  if (!window.confirm('确定停用策略 #' + pid + ' 吗？停用后 Agent 的签名立刻失效，可以重新建一条策略恢复。')) return;
   const c = new ethers.Contract(CFG.contracts.registry, REGISTRY_ABI, signer);
   try {
     await (await c.setActive(Number($('fPolicyId').value), false)).wait();
@@ -319,6 +436,20 @@ async function runAgent() {
   });
   if (!r.started) return toast('已经在跑了');
   $('agentLog').innerHTML = '';
+  $('btnAgent').disabled = true;
+  $('btnAgentFull').disabled = true;
+  $('btnAgent').textContent = '运行中… (约 40 秒)';
+  pollAgent();
+}
+
+/** 完整演示: 把合约里全部 12 种拦截跑一遍 (自动新建一组演示策略, 可以反复录) */
+async function runAgentFull() {
+  const r = await api('/api/agent/run-full', { method: 'POST' });
+  if (!r.started) return toast(r.reason === 'already running' ? '已经在跑了' : (r.reason || '启动失败'));
+  $('agentLog').innerHTML = '';
+  $('btnAgent').disabled = true;
+  $('btnAgentFull').disabled = true;
+  $('btnAgentFull').textContent = '完整演示运行中… (约 4 分钟)';
   pollAgent();
 }
 
@@ -331,8 +462,16 @@ async function pollAgent() {
   const r = await api('/api/agent/status');
   renderLog(r.log || []);
   if (r.running) setTimeout(pollAgent, 900);
-  else { loadPolicy(); loadAudit(); }
+  else {
+    $('btnAgent').disabled = false;
+    $('btnAgent').textContent = '启动自主采购';
+    $('btnAgentFull').disabled = false;
+    $('btnAgentFull').textContent = '完整演示（12 种拦截）';
+    loadPolicy(); loadAudit();
+  }
 }
+
+let autoTimer = null;
 
 async function loadAudit() {
   const r = await api('/api/audit?policyId=' + Number($('fPolicyId').value || 1));
@@ -341,21 +480,38 @@ async function loadAudit() {
     <td class="mono">${short(p.agent)}</td>
     <td class="mono">${short(p.payee)}</td>
     <td>${(Number(p.amount) / 1e6).toString()} mUSDC</td>
-    <td>${p.resourceId ? '买东西: ' + p.resourceId.slice(0, 10) + '…' : '-'}</td>
-    <td><a href="${p.explorer}" target="_blank">查看</a></td></tr>`).join('');
-  $('auditBody').innerHTML = rows || '<tr><td colspan="6" style="color:var(--muted)">还没有记录</td></tr>';
+    <td>${p.item ? p.item.split(' (')[0] : (p.resourceId ? '未知资源 ' + p.resourceId.slice(0, 8) + '…' : '-')}</td>
+    <td>${(Number(p.spentToday || 0) / 1e6).toString()} mUSDC</td>
+    <td><a href="${p.explorer}" target="_blank" class="mono">${p.txHash.slice(0, 10)}…</a></td></tr>`).join('');
+  $('auditBody').innerHTML = rows || '<tr><td colspan="7" style="color:var(--muted)">还没有记录</td></tr>';
+  const at = document.getElementById('auditAt');
+  if (at) at.textContent = '上次刷新 ' + new Date().toLocaleTimeString() + (autoTimer ? ' · 自动' : ' · 手动');
 }
 
 $('btnConnect').onclick = connect;
 $('btnCreate').onclick = createPolicy;
 $('btnDeposit').onclick = deposit;
+$('btnWithdraw').onclick = withdrawFunds;
+$('btnRotateAgent').onclick = rotateAgent;
 $('btnLoad').onclick = loadPolicy;
 $('btnFreezeTrue').onclick = () => freeze(true);
 $('btnFreezeFalse').onclick = () => freeze(false);
 $('btnRevokeAgent').onclick = revokeAgent;
 $('btnPreview').onclick = preview;
 $('btnAgent').onclick = runAgent;
+$('btnAgentFull').onclick = runAgentFull;
 $('btnAudit').onclick = loadAudit;
+$('chkAuto').onchange = (e) => {
+  if (autoTimer) { clearInterval(autoTimer); autoTimer = null; }
+  if (e.target.checked) {
+    autoTimer = setInterval(loadAudit, 10000);
+    loadAudit();
+    toast('已开启自动刷新（10 秒一次）');
+  } else {
+    loadAudit();
+    toast('已切回手动刷新');
+  }
+};
 boot();
 </script>
 </body>

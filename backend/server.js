@@ -90,6 +90,11 @@ const CATALOG = {
   },
 };
 
+// agent 用 ethers.id(route) 当链上 resourceId, 这里建反向映射, 让审计流水直接显示商品名
+const ITEM_BY_RESOURCE = Object.fromEntries(
+  Object.entries(CATALOG).map(([route, v]) => [ethers.id(route).toLowerCase(), v.desc])
+);
+
 // ---------- 工具 ----------
 const b64 = (o) => Buffer.from(JSON.stringify(o)).toString('base64');
 const unb64 = (s) => JSON.parse(Buffer.from(s, 'base64').toString('utf8'));
@@ -157,6 +162,8 @@ async function policyPrecheck(policyId, payee, amount) {
   const remainingDaily = policy.dailyCap > spentToday ? (policy.dailyCap - spentToday).toString() : '0';
   if (frozen) return { isValid: false, reason: 'vault: policy frozen', remainingDaily };
   if (!ok) return { isValid: false, reason, remainingDaily };
+  // 检查顺序必须和合约 checkPayment 一致: 先看今天还能花多少, 再看金库余额
+  if (amount > policy.dailyCap - spentToday) return { isValid: false, reason: 'vault: daily cap exceeded', remainingDaily };
   if (amount > balance) return { isValid: false, reason: 'vault: insufficient vault balance', remainingDaily };
   return { isValid: true, reason: 'ok', remainingDaily, vaultBalance: balance.toString() };
 }
@@ -196,6 +203,7 @@ async function auditTrail(policyId) {
       payee: l.args.payee,
       amount: l.args.amount.toString(),
       resourceId: l.args.resourceId,
+      item: ITEM_BY_RESOURCE[String(l.args.resourceId).toLowerCase()] || null,
       spentToday: l.args.spentToday.toString(),
       explorer: txUrl(l.transactionHash),
     });
@@ -262,6 +270,47 @@ async function runAgentDemo(policyId) {
   return { started: true };
 }
 
+/** 完整演示: 一次覆盖合约里全部 12 种拦截。会自动先准备一组新的演示策略, 保证可以反复录视频。 */
+async function runFullAgentDemo() {
+  if (agentState.running) return { started: false, reason: 'already running' };
+  agentState.running = true;
+  agentState.log = [];
+  agentState.summary = null;
+  agentState.startedAt = Date.now();
+  const { runFullDemo } = require('./demo-full.js');
+  const { readOwnerKey } = require('./demo-setup.js');
+
+  (async () => {
+    try {
+      const summary = await runFullDemo(
+        {
+          rpc: CFG.rpc,
+          chainId: CFG.chainId,
+          vault: CFG.vault,
+          registry: CFG.registry,
+          token: CFG.usdc,
+          agentKey: process.env.AGENT_PRIVATE_KEY,
+          facilitatorKey: process.env.FACILITATOR_PRIVATE_KEY,
+          ownerKey: readOwnerKey(process.env),
+          merchant: CFG.merchant,
+          baseUrl: `http://127.0.0.1:${CFG.port}`,
+          autoPrepare: true,
+        },
+        pushLog,
+        {}
+      );
+      agentState.summary = summary;
+    } catch (e) {
+      pushLog('block', '演示中断: ' + (e.shortMessage || e.message));
+      console.error('[run-full] 中断堆栈:', e.stack);
+      agentState.summary = { error: e.message };
+    } finally {
+      agentState.running = false;
+    }
+  })();
+  return { started: true };
+}
+
 // ---------- HTTP 路由 ----------
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'application/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.png': 'image/png', '.svg': 'image/svg+xml' };
 
@@ -306,12 +355,13 @@ async function handle(req, res) {
     const id = Number(policyMatch[1]);
     const p = await registryC.getPolicy(id);
     if (p.owner === ethers.ZeroAddress) return json(res, 404, { error: 'policy not found' });
-    const [balance, spentToday, frozen, count, list] = await Promise.all([
+    const [balance, spentToday, frozen, count, list, nextId] = await Promise.all([
       vaultC.policyBalance(id),
       vaultC.spentToday(id),
       vaultC.frozen(id),
       vaultC.paymentCount(id),
       registryC.allowlist(id),
+      registryC.nextPolicyId(),
     ]);
     return json(res, 200, {
       policyId: id,
@@ -328,6 +378,7 @@ async function handle(req, res) {
       remainingDaily: p.dailyCap > spentToday ? (p.dailyCap - spentToday).toString() : '0',
       frozen,
       paymentCount: count.toString(),
+      totalPolicies: Number(nextId) - 1,
       explorer,
     });
   }
@@ -371,6 +422,9 @@ async function handle(req, res) {
   if (route === '/api/agent/run' && req.method === 'POST') {
     const b = await readBody(req);
     return json(res, 200, await runAgentDemo(Number(b.policyId || CFG.policyId)));
+  }
+  if (route === '/api/agent/run-full' && req.method === 'POST') {
+    return json(res, 200, await runFullAgentDemo());
   }
   if (route === '/api/agent/status') {
     return json(res, 200, agentState);
